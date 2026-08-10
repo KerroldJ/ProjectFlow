@@ -14,13 +14,15 @@ class ProjectController extends Controller
     public function __construct(private readonly ProjectService $projects) {}
 
     /**
-     * GET /api/projects — list projects (search / filter / sort).
+     * GET /api/projects — paginated list of projects (search / filter / sort).
      */
     public function index(Request $request): JsonResponse
     {
         $filters = $request->only(['search', 'status', 'priority', 'sort', 'direction']);
+        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = max(1, min($perPage, 100));
 
-        return response()->json(['data' => $this->projects->list($filters)]);
+        return response()->json($this->projects->paginate($filters, $perPage));
     }
 
     /**

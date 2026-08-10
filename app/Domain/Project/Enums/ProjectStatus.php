@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Enums;
+namespace App\Domain\Project\Enums;
 
-enum ProjectPriority: string
+enum ProjectStatus: string
 {
-    case Low = 'Low';
-    case Medium = 'Medium';
-    case High = 'High';
+    case Planning = 'Planning';
+    case InProgress = 'In Progress';
+    case OnHold = 'On Hold';
+    case Completed = 'Completed';
 
     /**
      * Get all backing values as a plain array.

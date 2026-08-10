@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Enums\ProjectPriority;
-use App\Enums\ProjectStatus;
+use App\Domain\Project\Enums\ProjectPriority;
+use App\Domain\Project\Enums\ProjectStatus;
 use App\Repository\Models\Project;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

@@ -4,6 +4,8 @@ namespace App\Repository\Eloquent;
 
 use App\Domain\Project\ProjectDomain;
 use App\Repository\Models\Project;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class ProjectEloquentRepository implements ProjectDomain
@@ -25,12 +27,37 @@ class ProjectEloquentRepository implements ProjectDomain
      */
     public function all(array $filters = []): Collection
     {
-        $sort = in_array($filters['sort'] ?? null, $this->sortableColumns, true)
+        return $this->query($filters)->get();
+    }
+
+    /**
+     * Retrieve a paginated listing of projects.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<int, Project>
+     */
+    public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
+    {
+        return $this->query($filters)
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * Build the base query with search, filtering and sorting applied.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return Builder<Project>
+     */
+    private function query(array $filters = []): Builder
+    {
+        $sort = \in_array($filters['sort'] ?? null, $this->sortableColumns, true)
             ? $filters['sort']
             : 'created_at';
         $direction = ($filters['direction'] ?? null) === 'asc' ? 'asc' : 'desc';
 
-        return Project::query()
+        /** @var Builder<Project> $query */
+        $query = Project::query()
             ->when(! empty($filters['search']), function ($query) use ($filters) {
                 $search = $filters['search'];
 
@@ -41,8 +68,9 @@ class ProjectEloquentRepository implements ProjectDomain
             })
             ->when(! empty($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(! empty($filters['priority']), fn ($query) => $query->where('priority', $filters['priority']))
-            ->orderBy($sort, $direction)
-            ->get();
+            ->orderBy($sort, $direction);
+
+        return $query;
     }
 
     /**

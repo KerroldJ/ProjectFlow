@@ -66,6 +66,24 @@ class ProjectControllerTest extends TestCase
             ->assertJsonCount(3, 'data');
     }
 
+    public function test_the_api_paginates_projects(): void
+    {
+        $this->actingAsUser();
+        Project::factory()->count(15)->create();
+
+        $this->getJson(route('api.projects.index', ['per_page' => 10, 'page' => 1]))
+            ->assertOk()
+            ->assertJsonCount(10, 'data')
+            ->assertJsonPath('meta.total', 15)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.current_page', 1);
+
+        $this->getJson(route('api.projects.index', ['per_page' => 10, 'page' => 2]))
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('meta.current_page', 2);
+    }
+
     public function test_the_api_filters_projects_by_status(): void
     {
         $this->actingAsUser();

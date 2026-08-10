@@ -2,8 +2,8 @@
 
 namespace App\Repository\Models;
 
-use App\Enums\ProjectPriority;
-use App\Enums\ProjectStatus;
+use App\Domain\Project\Enums\ProjectPriority;
+use App\Domain\Project\Enums\ProjectStatus;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\Factory;

@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\ProjectPriority;
-use App\Enums\ProjectStatus;
+use App\Domain\Project\Enums\ProjectPriority;
+use App\Domain\Project\Enums\ProjectStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -50,5 +50,25 @@ class StoreProjectRequest extends FormRequest
         return [
             'due_date.after_or_equal' => 'The due date cannot be earlier than the start date.',
         ];
+    }
+
+    /**
+     * The valid status options (used to populate the UI).
+     *
+     * @return array<int, string>
+     */
+    public static function statusOptions(): array
+    {
+        return ProjectStatus::values();
+    }
+
+    /**
+     * The valid priority options (used to populate the UI).
+     *
+     * @return array<int, string>
+     */
+    public static function priorityOptions(): array
+    {
+        return ProjectPriority::values();
     }
 }

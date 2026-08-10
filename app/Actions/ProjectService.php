@@ -29,6 +29,31 @@ class ProjectService
     }
 
     /**
+     * Paginate projects, applying optional search/filter/sort criteria.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array{data: array<int, array<string, mixed>>, meta: array<string, int|null>}
+     */
+    public function paginate(array $filters = [], int $perPage = 10): array
+    {
+        $paginator = $this->projects->paginate($filters, $perPage);
+
+        return [
+            'data' => collect($paginator->items())
+                ->map(fn ($project) => ProjectData::fromModel($project)->toArray())
+                ->all(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
+        ];
+    }
+
+    /**
      * Fetch a single project as a DTO array.
      *
      * @return array<string, mixed>

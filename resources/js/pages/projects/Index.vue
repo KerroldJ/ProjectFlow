@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Head, useHttp } from '@inertiajs/vue3';
-import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil, Plus, Trash2 } from '@lucide/vue';
+import {
+    ArrowDown,
+    ArrowUp,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsUpDown,
+    Pencil,
+    Plus,
+    Trash2,
+} from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
@@ -49,6 +58,17 @@ const priority = ref(ALL);
 const sort = ref('created_at');
 const direction = ref('desc');
 
+const page = ref(1);
+const perPage = ref(10);
+const meta = ref({
+    current_page: 1,
+    last_page: 1,
+    per_page: perPage.value,
+    total: 0,
+    from: 0,
+    to: 0,
+});
+
 const fetchProjects = async () => {
     loading.value = true;
 
@@ -58,6 +78,8 @@ const fetchProjects = async () => {
     if (priority.value !== ALL) params.set('priority', priority.value);
     params.set('sort', sort.value);
     params.set('direction', direction.value);
+    params.set('page', String(page.value));
+    params.set('per_page', String(perPage.value));
 
     try {
         const response = await fetch(`/api/projects?${params.toString()}`, {
@@ -66,6 +88,15 @@ const fetchProjects = async () => {
         });
         const payload = await response.json();
         projects.value = payload.data ?? [];
+        if (payload.meta) {
+            meta.value = payload.meta;
+        }
+
+        // If the current page no longer exists (e.g. after a delete), step back.
+        if (page.value > meta.value.last_page && meta.value.last_page >= 1) {
+            page.value = meta.value.last_page;
+            return fetchProjects();
+        }
     } finally {
         loading.value = false;
     }
@@ -73,12 +104,26 @@ const fetchProjects = async () => {
 
 onMounted(fetchProjects);
 
-let searchTimeout: ReturnType<typeof setTimeout>;
-watch(search, () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(fetchProjects, 300);
-});
-watch([status, priority], fetchProjects);
+/** Reset to the first page and refetch (used for any filter/sort change). */
+const applyFilters = () => {
+    page.value = 1;
+    fetchProjects();
+};
+
+// Server-side filtering — refetch immediately when a filter changes.
+watch([status, priority], applyFilters);
+
+// Search is server-side too, but only runs when the user presses Enter.
+const submitSearch = () => applyFilters();
+
+const goToPage = (target: number) => {
+    if (target < 1 || target > meta.value.last_page || target === page.value) {
+        return;
+    }
+
+    page.value = target;
+    fetchProjects();
+};
 
 const sortBy = (column: string) => {
     if (sort.value === column) {
@@ -87,7 +132,7 @@ const sortBy = (column: string) => {
         sort.value = column;
         direction.value = 'asc';
     }
-    fetchProjects();
+    applyFilters();
 };
 
 const statusVariant = (value: string) => {
@@ -187,8 +232,9 @@ const openEditDialog = (project: Project) => {
             <Input
                 v-model="search"
                 type="search"
-                placeholder="Search client or project…"
+                placeholder="Search client or project… (press Enter)"
                 class="sm:max-w-xs"
+                @keyup.enter="submitSearch"
             />
 
             <Select v-model="status">
@@ -335,6 +381,40 @@ const openEditDialog = (project: Project) => {
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <div
+            v-if="!loading && meta.total > 0"
+            class="flex flex-col items-center justify-between gap-3 sm:flex-row"
+        >
+            <p class="text-sm text-muted-foreground">
+                Showing {{ meta.from ?? 0 }}–{{ meta.to ?? 0 }} of
+                {{ meta.total }} project{{ meta.total === 1 ? '' : 's' }}
+            </p>
+
+            <div class="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    :disabled="meta.current_page <= 1"
+                    @click="goToPage(meta.current_page - 1)"
+                >
+                    <ChevronLeft />
+                    Previous
+                </Button>
+                <span class="text-sm text-muted-foreground">
+                    Page {{ meta.current_page }} of {{ meta.last_page }}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    :disabled="meta.current_page >= meta.last_page"
+                    @click="goToPage(meta.current_page + 1)"
+                >
+                    Next
+                    <ChevronRight />
+                </Button>
+            </div>
         </div>
     </div>
 
