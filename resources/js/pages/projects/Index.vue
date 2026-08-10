@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, useHttp } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil, Plus, Trash2 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
+import ProjectFormDialog from '@/components/ProjectFormDialog.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,12 +23,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { create, destroy, edit, index as projectsIndex } from '@/routes/projects';
-import type { Project, ProjectFilters } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { Project } from '@/types';
 
-const props = defineProps<{
-    projects: Project[];
-    filters: ProjectFilters;
+defineProps<{
     statuses: string[];
     priorities: string[];
 }>();
@@ -40,32 +39,45 @@ defineOptions({
 
 const ALL = '__all__';
 
-const search = ref(props.filters.search ?? '');
-const status = ref(props.filters.status ?? ALL);
-const priority = ref(props.filters.priority ?? ALL);
-const sort = ref(props.filters.sort ?? 'created_at');
-const direction = ref(props.filters.direction ?? 'desc');
+const projects = ref<Project[]>([]);
+const loading = ref(true);
 
-const applyFilters = () => {
-    router.get(
-        projectsIndex().url,
-        {
-            search: search.value || undefined,
-            status: status.value === ALL ? undefined : status.value,
-            priority: priority.value === ALL ? undefined : priority.value,
-            sort: sort.value,
-            direction: direction.value,
-        },
-        { preserveState: true, preserveScroll: true, replace: true },
-    );
+const search = ref('');
+const status = ref(ALL);
+const priority = ref(ALL);
+const sort = ref('created_at');
+const direction = ref('desc');
+
+const fetchProjects = async () => {
+    loading.value = true;
+
+    const params = new URLSearchParams();
+    if (search.value) params.set('search', search.value);
+    if (status.value !== ALL) params.set('status', status.value);
+    if (priority.value !== ALL) params.set('priority', priority.value);
+    params.set('sort', sort.value);
+    params.set('direction', direction.value);
+
+    try {
+        const response = await fetch(`/api/projects?${params.toString()}`, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+        });
+        const payload = await response.json();
+        projects.value = payload.data ?? [];
+    } finally {
+        loading.value = false;
+    }
 };
+
+onMounted(fetchProjects);
 
 let searchTimeout: ReturnType<typeof setTimeout>;
 watch(search, () => {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(applyFilters, 300);
+    searchTimeout = setTimeout(fetchProjects, 300);
 });
-watch([status, priority], applyFilters);
+watch([status, priority], fetchProjects);
 
 const sortBy = (column: string) => {
     if (sort.value === column) {
@@ -74,7 +86,7 @@ const sortBy = (column: string) => {
         sort.value = column;
         direction.value = 'asc';
     }
-    applyFilters();
+    fetchProjects();
 };
 
 const statusVariant = (value: string) => {
@@ -123,24 +135,35 @@ const columns = [
 ];
 
 const projectToDelete = ref<Project | null>(null);
-const deleting = ref(false);
+const deleteHttp = useHttp({});
 
 const confirmDelete = () => {
     if (!projectToDelete.value) {
         return;
     }
 
-    router.delete(destroy(projectToDelete.value.id).url, {
-        preserveScroll: true,
-        onStart: () => (deleting.value = true),
-        onFinish: () => {
-            deleting.value = false;
+    deleteHttp.delete(`/api/projects/${projectToDelete.value.id}`, {
+        onSuccess: () => {
             projectToDelete.value = null;
+            fetchProjects();
         },
     });
 };
 
-const hasProjects = computed(() => props.projects.length > 0);
+const hasProjects = computed(() => projects.value.length > 0);
+
+const formDialogOpen = ref(false);
+const editingProject = ref<Project | null>(null);
+
+const openCreateDialog = () => {
+    editingProject.value = null;
+    formDialogOpen.value = true;
+};
+
+const openEditDialog = (project: Project) => {
+    editingProject.value = project;
+    formDialogOpen.value = true;
+};
 </script>
 
 <template>
@@ -152,11 +175,9 @@ const hasProjects = computed(() => props.projects.length > 0);
                 title="Projects"
                 description="Track client projects, their status and priorities."
             />
-            <Button as-child>
-                <Link :href="create()">
-                    <Plus />
-                    New Project
-                </Link>
+            <Button @click="openCreateDialog">
+                <Plus />
+                New Project
             </Button>
         </div>
 
@@ -225,8 +246,25 @@ const hasProjects = computed(() => props.projects.length > 0);
                     </tr>
                 </thead>
                 <tbody>
+                    <template v-if="loading">
+                        <tr
+                            v-for="n in 5"
+                            :key="`skeleton-${n}`"
+                            class="border-t border-sidebar-border/70 dark:border-sidebar-border"
+                        >
+                            <td
+                                v-for="i in columns.length + 1"
+                                :key="i"
+                                class="px-4 py-3"
+                            >
+                                <Skeleton class="h-5 w-full" />
+                            </td>
+                        </tr>
+                    </template>
+
                     <tr
                         v-for="project in projects"
+                        v-else
                         :key="project.id"
                         class="border-t border-sidebar-border/70 dark:border-sidebar-border"
                     >
@@ -258,10 +296,13 @@ const hasProjects = computed(() => props.projects.length > 0);
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-end gap-1">
-                                <Button as-child variant="ghost" size="icon-sm">
-                                    <Link :href="edit(project.id)" title="Edit">
-                                        <Pencil />
-                                    </Link>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    title="Edit"
+                                    @click="openEditDialog(project)"
+                                >
+                                    <Pencil />
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -275,19 +316,33 @@ const hasProjects = computed(() => props.projects.length > 0);
                         </td>
                     </tr>
 
-                    <tr v-if="!hasProjects">
+                    <tr v-if="!loading && !hasProjects">
                         <td
                             :colspan="columns.length + 1"
                             class="px-4 py-12 text-center text-muted-foreground"
                         >
                             No projects found. Try adjusting your filters or
-                            <Link :href="create()" class="underline">create one</Link>.
+                            <button
+                                type="button"
+                                class="underline"
+                                @click="openCreateDialog"
+                            >
+                                create one
+                            </button>.
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
+
+    <ProjectFormDialog
+        v-model:open="formDialogOpen"
+        :project="editingProject"
+        :statuses="statuses"
+        :priorities="priorities"
+        @saved="fetchProjects"
+    />
 
     <Dialog
         :open="projectToDelete !== null"
@@ -308,7 +363,7 @@ const hasProjects = computed(() => props.projects.length > 0);
                 </DialogClose>
                 <Button
                     variant="destructive"
-                    :disabled="deleting"
+                    :disabled="deleteHttp.processing"
                     @click="confirmDelete"
                 >
                     Delete

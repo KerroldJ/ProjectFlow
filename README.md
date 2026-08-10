@@ -8,12 +8,37 @@ interface backed by a RESTful controller.
 
 | Layer     | Choice                              | Why |
 |-----------|-------------------------------------|-----|
-| Backend   | **Laravel 12 (PHP 8.4)**            | Batteries-included framework: routing, validation, Eloquent, migrations, and a resourceful controller give REST CRUD with very little boilerplate. |
-| Frontend  | **Vue 3 + Inertia.js v3**           | A single-page experience without building/consuming a separate API by hand. Inertia lets the Laravel controllers drive fully client-rendered Vue pages while keeping server-side routing and validation. |
-| UI        | **Tailwind CSS + shadcn-vue (reka-ui)** | Accessible, consistent primitives (Select, Dialog, Badge, Button) already shipped with the starter kit. |
+| Backend   | **Laravel 12 (PHP 8.4)**            | Batteries-included framework: routing, validation, Eloquent, and migrations. Structured with a **Repository Pattern + Service Layer (DDD/Clean Architecture)** — see below. |
+| API       | **JSON REST API** (`routes/api.php`) | Dedicated stateless-style JSON endpoints for projects, consumed by the SPA over `fetch` / Inertia's `useHttp`. |
+| Auth (API)| **Laravel Sanctum** (SPA / cookie)  | Stateful, same-origin cookie authentication so the existing session (Fortify) also protects the API — no token juggling in the browser. |
+| Frontend  | **Vue 3 + Inertia.js v3**           | SPA shell + client-side data fetching from the REST API via `useHttp` (with automatic validation-error mapping) and `fetch`. |
+| UI        | **Tailwind CSS + shadcn-vue (reka-ui)** | Accessible primitives (Select, Dialog, Badge, Button, Skeleton). |
 | Database  | **PostgreSQL**                      | Robust relational store; matches the project's existing configuration. |
-| Auth      | **Laravel Fortify** (starter kit)   | Login / registration / 2FA / passkeys were already wired in; the app now uses **Login as the landing page**. |
+| Web auth  | **Laravel Fortify** (starter kit)   | Login / registration / 2FA / passkeys; the app uses **Login as the landing page**. |
 | Tooling   | Laravel Wayfinder, Pint, PHPUnit    | Type-safe route helpers in TS, PSR-12 formatting, and feature tests. |
+
+## Architecture (Repository Pattern + Service Layer)
+
+Following DDD / Clean Architecture / SOLID, the controller never touches Eloquent
+directly. The dependency flow is:
+
+```
+Controller -> Action (Service) -> Domain contract -> Eloquent Repository -> Eloquent model
+                     \--- shapes data via Concerns (DTO) ---/
+```
+
+| Folder | Responsibility |
+|--------|----------------|
+| `app/Domain/{User,Project}/*Domain.php` | Domain repository **contracts** (interfaces), each `extends IRepository`. |
+| `app/Repository/IRepository.php` | Base repository interface (`all/find/store/update/delete`). |
+| `app/Repository/Eloquent/` | Eloquent **models** (`User`, `Project`) **and** their repository implementations (`UserEloquentRepository`, `ProjectEloquentRepository`) implementing the domain contracts. |
+| `app/Actions/ProjectService.php` | **Service layer** — business logic; depends only on the domain abstraction, returns DTO arrays. |
+| `app/Concerns/ProjectData.php` | **DTO** — carries validated input into the domain and shapes the JSON output (replaces API Resources). |
+| `app/Providers/RepositoryServiceProvider.php` | Binds each `*Domain` interface to its Eloquent implementation. |
+
+Swapping the data source (e.g. to an external API) means writing one new class
+that implements the domain contract and updating a single binding — nothing in
+the controllers or services changes.
 
 ## Data Model
 
@@ -34,24 +59,26 @@ interface backed by a RESTful controller.
 `status` and `priority` are backed by PHP enums (`App\Enums\ProjectStatus`,
 `App\Enums\ProjectPriority`) and cast on the model.
 
-## API / Routes
+## REST API
 
-Registered via `Route::resource('projects', ProjectController::class)` (behind
-`auth` + `verified` middleware):
+The JSON REST API lives in `routes/api.php` via
+`Route::apiResource('projects', ...)` behind `auth:sanctum`:
 
-| Method | URI              | Action  | Purpose |
-|--------|------------------|---------|---------|
-| GET    | /projects        | index   | List (supports search / filter / sort) |
-| GET    | /projects/create | create  | Create form |
-| POST   | /projects        | store   | Create |
-| GET    | /projects/{id}   | show    | Details |
-| GET    | /projects/{id}/edit | edit | Edit form |
-| PUT    | /projects/{id}   | update  | Update |
-| DELETE | /projects/{id}   | destroy | Delete |
+| Method | URI                 | Action  | Response |
+|--------|---------------------|---------|----------|
+| GET    | /api/projects       | index   | `200` `{ data: [...] }` (search / filter / sort) |
+| POST   | /api/projects       | store   | `201` `{ data: {...} }` |
+| GET    | /api/projects/{id}  | show    | `200` `{ data: {...} }` |
+| PUT    | /api/projects/{id}  | update  | `200` `{ data: {...} }` |
+| DELETE | /api/projects/{id}  | destroy | `204` No Content |
 
-Because this is an Inertia application, these RESTful routes power the UI
-directly — `index`/`show`/`create`/`edit` return Inertia pages while
-`store`/`update`/`destroy` persist and redirect with a flash toast.
+Invalid requests return `422` with `{ message, errors }`. Unauthenticated
+requests return `401`.
+
+A single **web** route, `GET /projects` (`projects.index`, behind
+`auth` + `verified`), renders the Inertia page shell. The Vue app then fetches
+its data from the REST API client-side and performs **create/edit in a modal
+dialog** on the list page.
 
 ## Validation
 
@@ -108,15 +135,18 @@ DB_PASSWORD=your_password
 
 ### 3. Migrate & seed
 
-The seeder loads the 12 sample projects from
-`database/data/projects.json`.
+`DatabaseSeeder` runs two seeders: `UserSeeder` (a known login account) and
+`ProjectSeeder` (the 12 sample projects loaded from
+`database/data/projects.json`).
 
 ```bash
 php artisan migrate --seed
 ```
 
-The bundled `DatabaseSeeder` also creates a test login:
-`test@example.com`.
+The seeded login credentials are:
+
+- **Email:** `admin@projectflow.test`
+- **Password:** `password`
 
 ### 4. Run the application
 
@@ -131,8 +161,9 @@ php artisan serve
 npm run dev
 ```
 
-Open the app — you'll land on the **Login** page. Register or log in, then use
-**Projects** in the sidebar.
+Open the app — you'll land on the **Login** page. After logging in you go
+straight to the **Projects** list (the entry point of the app; there is no
+separate dashboard).
 
 ## Running Tests
 

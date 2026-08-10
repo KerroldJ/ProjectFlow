@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace App\Repository\Eloquent;
 
 use App\Enums\ProjectPriority;
 use App\Enums\ProjectStatus;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -41,5 +42,13 @@ class Project extends Model
             'start_date' => 'date',
             'due_date' => 'date',
         ];
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory(): Factory
+    {
+        return ProjectFactory::new();
     }
 }

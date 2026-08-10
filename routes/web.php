@@ -5,13 +5,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route(Auth::check() ? 'dashboard' : 'login');
+    return redirect()->route(Auth::check() ? 'projects.index' : 'login');
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
-
-    Route::resource('projects', ProjectController::class);
+    // Inertia page shell — project data is fetched client-side from the
+    // JSON REST API defined in routes/api.php.
+    Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
 });
 
 require __DIR__.'/settings.php';

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { InertiaForm } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,15 +22,23 @@ export interface ProjectFormFields {
     due_date: string;
 }
 
+/**
+ * Structural type shared by Inertia's `useForm` and `useHttp` helpers: the
+ * writable fields plus reactive `errors` and `processing` state.
+ */
+export type ProjectFormModel = ProjectFormFields & {
+    errors: Partial<Record<keyof ProjectFormFields, string>>;
+    processing: boolean;
+};
+
 defineProps<{
-    form: InertiaForm<ProjectFormFields>;
+    form: ProjectFormModel;
     statuses: string[];
     priorities: string[];
     submitLabel: string;
-    cancelHref: string;
 }>();
 
-const emit = defineEmits<{ submit: [] }>();
+const emit = defineEmits<{ submit: []; cancel: [] }>();
 </script>
 
 <template>
@@ -132,8 +139,13 @@ const emit = defineEmits<{ submit: [] }>();
                 <Spinner v-if="form.processing" />
                 {{ submitLabel }}
             </Button>
-            <Button as-child variant="outline" type="button">
-                <a :href="cancelHref">Cancel</a>
+            <Button
+                variant="outline"
+                type="button"
+                :disabled="form.processing"
+                @click="emit('cancel')"
+            >
+                Cancel
             </Button>
         </div>
     </form>

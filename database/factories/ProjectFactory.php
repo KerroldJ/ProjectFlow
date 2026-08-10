@@ -4,7 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\ProjectPriority;
 use App\Enums\ProjectStatus;
-use App\Models\Project;
+use App\Repository\Eloquent\Project;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -12,6 +12,13 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ProjectFactory extends Factory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<Project>
+     */
+    protected $model = Project::class;
+
     /**
      * Define the model's default state.
      *
