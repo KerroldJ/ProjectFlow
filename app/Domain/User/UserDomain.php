@@ -2,8 +2,8 @@
 
 namespace App\Domain\User;
 
-use App\Repository\Eloquent\User;
 use App\Repository\IRepository;
+use App\Repository\Models\User;
 
 /**
  * User domain repository contract.

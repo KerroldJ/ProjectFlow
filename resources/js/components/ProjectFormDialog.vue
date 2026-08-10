@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useHttp } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import ProjectForm, { type ProjectFormModel } from '@/components/ProjectForm.vue';
 import {
     Dialog,
@@ -61,6 +62,7 @@ const close = () => emit('update:open', false);
 const submit = () => {
     const options = {
         onSuccess: () => {
+            toast.success(isEdit.value ? 'Project updated.' : 'Project created.');
             emit('saved');
             close();
         },

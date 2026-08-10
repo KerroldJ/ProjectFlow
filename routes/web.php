@@ -9,8 +9,6 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Inertia page shell — project data is fetched client-side from the
-    // JSON REST API defined in routes/api.php.
     Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
 });
 

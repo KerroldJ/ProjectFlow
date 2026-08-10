@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Repository\Eloquent\User;
+use App\Repository\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Repository\Eloquent\User;
+use App\Repository\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;

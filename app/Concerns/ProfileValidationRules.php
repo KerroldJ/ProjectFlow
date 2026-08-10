@@ -2,7 +2,7 @@
 
 namespace App\Concerns;
 
-use App\Repository\Eloquent\User;
+use App\Repository\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 

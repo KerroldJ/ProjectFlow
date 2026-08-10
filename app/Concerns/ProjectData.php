@@ -2,7 +2,7 @@
 
 namespace App\Concerns;
 
-use App\Repository\Eloquent\Project;
+use App\Repository\Models\Project;
 
 /**
  * Data Transfer Object for a project.

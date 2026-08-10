@@ -2,6 +2,7 @@
 import { Head, useHttp } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import ProjectFormDialog from '@/components/ProjectFormDialog.vue';
 import { Badge } from '@/components/ui/badge';
@@ -144,6 +145,7 @@ const confirmDelete = () => {
 
     deleteHttp.delete(`/api/projects/${projectToDelete.value.id}`, {
         onSuccess: () => {
+            toast.success('Project deleted.');
             projectToDelete.value = null;
             fetchProjects();
         },

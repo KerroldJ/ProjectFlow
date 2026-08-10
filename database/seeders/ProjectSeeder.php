@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Repository\Eloquent\Project;
+use App\Repository\Models\Project;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 

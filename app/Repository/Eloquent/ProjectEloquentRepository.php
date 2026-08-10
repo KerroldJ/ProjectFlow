@@ -3,6 +3,7 @@
 namespace App\Repository\Eloquent;
 
 use App\Domain\Project\ProjectDomain;
+use App\Repository\Models\Project;
 use Illuminate\Database\Eloquent\Collection;
 
 class ProjectEloquentRepository implements ProjectDomain

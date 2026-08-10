@@ -31,7 +31,8 @@ Controller -> Action (Service) -> Domain contract -> Eloquent Repository -> Eloq
 |--------|----------------|
 | `app/Domain/{User,Project}/*Domain.php` | Domain repository **contracts** (interfaces), each `extends IRepository`. |
 | `app/Repository/IRepository.php` | Base repository interface (`all/find/store/update/delete`). |
-| `app/Repository/Eloquent/` | Eloquent **models** (`User`, `Project`) **and** their repository implementations (`UserEloquentRepository`, `ProjectEloquentRepository`) implementing the domain contracts. |
+| `app/Repository/Models/` | Eloquent **models** (`User`, `Project`). |
+| `app/Repository/Eloquent/` | Repository **implementations** (`UserEloquentRepository`, `ProjectEloquentRepository`) implementing the domain contracts. |
 | `app/Actions/ProjectService.php` | **Service layer** — business logic; depends only on the domain abstraction, returns DTO arrays. |
 | `app/Concerns/ProjectData.php` | **DTO** — carries validated input into the domain and shapes the JSON output (replaces API Resources). |
 | `app/Providers/RepositoryServiceProvider.php` | Binds each `*Domain` interface to its Eloquent implementation. |

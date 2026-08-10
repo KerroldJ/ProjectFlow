@@ -3,6 +3,7 @@
 namespace App\Repository\Eloquent;
 
 use App\Domain\User\UserDomain;
+use App\Repository\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 
 class UserEloquentRepository implements UserDomain

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repository\Eloquent;
+namespace App\Repository\Models;
 
 use App\Enums\ProjectPriority;
 use App\Enums\ProjectStatus;

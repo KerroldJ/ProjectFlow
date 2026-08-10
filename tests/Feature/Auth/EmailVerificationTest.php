@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Repository\Eloquent\User;
+use App\Repository\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;

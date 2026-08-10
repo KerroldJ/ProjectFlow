@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Repository\Eloquent\User;
+use App\Repository\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
